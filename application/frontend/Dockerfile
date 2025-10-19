@@ -21,19 +21,15 @@ COPY --from=builder /app/build /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY default.conf /etc/nginx/conf.d/default.conf
 
-# Create entrypoint script
-RUN mkdir -p /tmp && cat > /tmp/entrypoint.sh << 'SCRIPT_EOF'
+# Create entrypoint script that generates config.js at runtime
+RUN cat > /app-entrypoint.sh << 'EOF'
 #!/bin/sh
-set -e
-cat > /usr/share/nginx/html/config.js << 'JS_EOF'
-window.ENV = {
-  REACT_APP_BACKEND_URL: '${REACT_APP_BACKEND_URL:-http://localhost:3001}',
-  REACT_APP_API_URL: '${REACT_APP_API_URL:-http://localhost:3001}'
-};
-JS_EOF
-exec "$@"
-SCRIPT_EOF
-RUN chmod +x /tmp/entrypoint.sh && cp /tmp/entrypoint.sh /app-entrypoint.sh && chmod +x /app-entrypoint.sh
+cat > /usr/share/nginx/html/config.js << CONFEOF
+window.ENV = {REACT_APP_BACKEND_URL: '${REACT_APP_BACKEND_URL:-http://localhost:3001}',REACT_APP_API_URL: '${REACT_APP_API_URL:-http://localhost:3001}'};
+CONFEOF
+exec nginx -g "daemon off;"
+EOF
+RUN chmod +x /app-entrypoint.sh
 
 # Create directories and set permissions
 RUN mkdir -p /var/log/nginx /var/cache/nginx /var/run/nginx /etc/nginx/conf.d && \
@@ -49,5 +45,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3000/ || exit 1
 
 ENTRYPOINT ["/app-entrypoint.sh"]
-CMD ["nginx", "-g", "daemon off;"]
 
