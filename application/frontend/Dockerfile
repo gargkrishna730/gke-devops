@@ -25,7 +25,8 @@ COPY default.conf /etc/nginx/conf.d/default.conf
 # Create directories with proper permissions
 RUN mkdir -p /var/log/nginx /var/cache/nginx /var/run/nginx && \
     chown -R nginx_user:nginx_user /var/log/nginx /var/cache/nginx /var/run/nginx /usr/share/nginx/html && \
-    chmod -R 755 /var/log/nginx /var/cache/nginx /var/run/nginx
+    chmod -R 755 /var/log/nginx /var/cache/nginx /var/run/nginx && \
+    chmod -R 777 /usr/share/nginx/html
 
 # Copy entrypoint script
 COPY entrypoint.sh /app-entrypoint.sh

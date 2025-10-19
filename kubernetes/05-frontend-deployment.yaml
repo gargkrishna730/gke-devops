@@ -37,7 +37,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: frontend
-        image: us-central1-docker.pkg.dev/elegant-atom-475415-c4/frontend/wobot-frontend:latest
+        image: us-central1-docker.pkg.dev/elegant-atom-475415-c4/frontend/wobot-frontend:c25c6ae207bd51f48b6fa0c3b2f5de8e37226abb
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 3000
@@ -146,7 +146,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: frontend
-        image: us-central1-docker.pkg.dev/elegant-atom-475415-c4/frontend/wobot-frontend:latest
+        image: us-central1-docker.pkg.dev/elegant-atom-475415-c4/frontend/wobot-frontend:c25c6ae207bd51f48b6fa0c3b2f5de8e37226abb
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 3000
