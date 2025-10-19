@@ -68,7 +68,7 @@ Access:
 
 ## 🌐 Deployed Application
 
-**Frontend**: http://136.113.219.191:3000/
+**Frontend**: http://136.113.219.191/
 
 The application is live and running on GKE!
 
