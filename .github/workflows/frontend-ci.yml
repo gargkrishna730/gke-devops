@@ -3,7 +3,7 @@ name: Build, Scan & Push Frontend to Artifact Registry  🚀
 on:
   push:
     branches:
-      - main
+      - master
     paths:
       - 'application/frontend/**'
       - '.github/workflows/frontend-ci.yml'

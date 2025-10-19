@@ -3,7 +3,7 @@ name: Build, Scan & Push Backend to Artifact Registry
 on:
   push:
     branches:
-      - main
+      - master
     paths:
       - 'application/backend/**'
       - '.github/workflows/backend-ci.yml'
