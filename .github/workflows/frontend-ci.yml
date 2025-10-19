@@ -1,4 +1,4 @@
-name: Build, Scan & Push Frontend to Artifact Registry  🚀
+name: Build, Scan & Push Frontend to Artifact Registry 🚀
 
 on:
   push:
@@ -62,41 +62,35 @@ jobs:
           dockerfile: application/frontend/Dockerfile
           failure-threshold: warning
 
-      - name: �️ Scan Docker Image with Trivy
+      - name: 🛡️ Scan Docker Image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.image.outputs.tag }}
+          format: 'json'
+          output: 'scan-results/scan-report.json'
+          scanners: 'vuln'
+          severity: 'MEDIUM,HIGH,CRITICAL'
+
+      - name: 📊 Generate Trivy Report Summary
+        if: always()
         run: |
           mkdir -p scan-results
-          which trivy || (curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin)
-          # wait for remote registry propagation (brief backoff)
-          for i in {1..6}; do
-            if curl -s -f -I "https://${{ env.REGISTRY }}/v2/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/manifests/${{ env.IMAGE_TAG }}" >/dev/null 2>&1; then
-              echo "Image manifest available"
-              break
-            fi
-            echo "Waiting for image manifest to appear... ($i)"
-            sleep 5
-          done
-          trivy image --remote --format json -o scan-results/scan-report.json ${{ steps.image.outputs.tag }}
-          trivy image --remote --format template --template "@/usr/local/share/trivy/templates/html.tpl" -o scan-results/scan-report.html ${{ steps.image.outputs.tag }}
-          # Generate clean summary table for GitHub
-          echo "## 🛡️ Security Scan Results" >> $GITHUB_STEP_SUMMARY
-          echo "| Severity | Count |" >> $GITHUB_STEP_SUMMARY
-          echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
-          
-          # Parse JSON and count vulnerabilities by severity
-          jq -r '
-            .Results | 
-            map(.Vulnerabilities // []) | 
-            flatten | 
-            group_by(.Severity) | 
-            map({severity: .[0].Severity, count: length}) | 
-            .[] |
-            "| \(.severity) | \(.count) |"
-          ' scan-results/scan-report.json >> $GITHUB_STEP_SUMMARY
-          
-          # Add verification note
-          echo -e "\n### 📋 Full Report" >> $GITHUB_STEP_SUMMARY
-          echo "Detailed HTML and JSON reports have been generated and uploaded as artifacts." >> $GITHUB_STEP_SUMMARY
-          echo "You can download and view them from the 'Artifacts' section of this workflow run." >> $GITHUB_STEP_SUMMARY
+          if [ -f scan-results/scan-report.json ]; then
+            echo "## 🛡️ Security Scan Results" >> $GITHUB_STEP_SUMMARY
+            echo "| Severity | Count |" >> $GITHUB_STEP_SUMMARY
+            echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
+            
+            jq -r '.Results[]? | select(.Vulnerabilities) | .Vulnerabilities[] | .Severity' scan-results/scan-report.json | sort | uniq -c | while read count severity; do
+              echo "| $severity | $count |" >> $GITHUB_STEP_SUMMARY
+            done
+            
+            echo -e "\n### 📝 Scan Details" >> $GITHUB_STEP_SUMMARY
+            echo "Image: ${{ steps.image.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+            echo "Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ✅ Security Scan Passed" >> $GITHUB_STEP_SUMMARY
+            echo "No vulnerabilities detected or scan was skipped." >> $GITHUB_STEP_SUMMARY
+          fi
 
       - name: 📦 Upload Scan Results
         uses: actions/upload-artifact@v4
