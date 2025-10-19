@@ -8,16 +8,19 @@ metadata:
     app: backend
   annotations:
     cloud.google.com/neg: '{"ingress": true}'
-    cloud.google.com/backend-config: '{"ports": {"3001":"backend-backendconfig"}}'
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   selector:
     app: backend
   ports:
-  - port: 3001
+  - port: 80
     targetPort: 3001
     protocol: TCP
     name: http
+  - port: 443
+    targetPort: 3001
+    protocol: TCP
+    name: https
   sessionAffinity: None
   sessionAffinityConfig:
     clientIP:

@@ -31,12 +31,12 @@ metadata:
     app: frontend
     version: stable
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   selector:
     app: frontend
     track: stable
   ports:
-  - port: 3000
+  - port: 80
     targetPort: 3000
     protocol: TCP
     name: http

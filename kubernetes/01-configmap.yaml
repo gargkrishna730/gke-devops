@@ -13,4 +13,5 @@ metadata:
   name: frontend-config
   namespace: wobot
 data:
-  REACT_APP_BACKEND_URL: "http://backend-service.wobot.svc.cluster.local:3001"
+  REACT_APP_BACKEND_URL: "http://backend-service.wobot.svc.cluster.local"
+  REACT_APP_API_URL: "http://backend-service.wobot.svc.cluster.local"

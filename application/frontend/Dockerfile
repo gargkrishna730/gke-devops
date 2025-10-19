@@ -20,7 +20,7 @@ FROM nginx:1.24-alpine
 SHELL ["/bin/ash", "-o", "pipefail", "-c"]
 
 # Install curl for health checks and envsubst for runtime variable substitution
-RUN apk add --no-cache curl=8.5.0-r0 gettext=0.22.5-r0
+RUN apk add --no-cache curl gettext
 
 # Create non-root user
 RUN addgroup -g 1001 -S nginx_user && \
@@ -49,7 +49,7 @@ EOJS
 exec "$@"
 EOF
 
-chmod +x /app-entrypoint.sh
+RUN chmod +x /app-entrypoint.sh
 
 # Create necessary directories with proper permissions
 RUN mkdir -p /var/log/nginx && \
