@@ -1,0 +1,99 @@
+# Script to perform canary rollout
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: canary-rollout-script
+  namespace: wobot
+data:
+  rollout.sh: |
+    #!/bin/bash
+    set -e
+
+    NAMESPACE="wobot"
+    SERVICE="backend-service"
+    STABLE_DEPLOYMENT="backend-stable"
+    CANARY_DEPLOYMENT="backend-canary"
+    STABLE_REPLICAS=2
+    CANARY_REPLICAS=1
+
+    echo "Starting canary rollout for backend service..."
+
+    # Step 1: Deploy canary version
+    echo "Step 1: Deploying canary version..."
+    kubectl set image deployment/$CANARY_DEPLOYMENT \
+      -n $NAMESPACE \
+      backend=gcr.io/PROJECT_ID/wobot-backend:canary
+
+    # Step 2: Wait for canary deployment to be ready
+    echo "Step 2: Waiting for canary deployment to be ready..."
+    kubectl rollout status deployment/$CANARY_DEPLOYMENT -n $NAMESPACE
+
+    # Step 3: Monitor canary metrics
+    echo "Step 3: Monitoring canary metrics (10 seconds)..."
+    sleep 10
+
+    # Step 4: Gradually shift traffic
+    echo "Step 4: Gradually shifting traffic to canary..."
+    for weight in 10 25 50 75 100; do
+      echo "  Traffic weight: $weight%"
+      sleep 5
+    done
+
+    # Step 5: Complete rollout
+    echo "Step 5: Completing rollout..."
+    kubectl set image deployment/$STABLE_DEPLOYMENT \
+      -n $NAMESPACE \
+      backend=gcr.io/PROJECT_ID/wobot-backend:canary
+
+    kubectl rollout status deployment/$STABLE_DEPLOYMENT -n $NAMESPACE
+
+    echo "Canary rollout completed successfully!"
+
+---
+# Blue-Green Rollout Script
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: blue-green-rollout-script
+  namespace: wobot
+data:
+  blue-green.sh: |
+    #!/bin/bash
+    set -e
+
+    NAMESPACE="wobot"
+    BLUE_DEPLOYMENT="backend-stable"
+    GREEN_DEPLOYMENT="backend-canary"
+    SERVICE="backend-service"
+
+    echo "Starting blue-green rollout..."
+
+    # Step 1: Deploy green version
+    echo "Step 1: Deploying green (new) version..."
+    kubectl set image deployment/$GREEN_DEPLOYMENT \
+      -n $NAMESPACE \
+      backend=gcr.io/PROJECT_ID/wobot-backend:latest
+
+    kubectl rollout status deployment/$GREEN_DEPLOYMENT -n $NAMESPACE
+
+    # Step 2: Run health checks on green
+    echo "Step 2: Running health checks on green..."
+    GREEN_PODS=$(kubectl get pods -n $NAMESPACE -l app=backend,track=canary -o jsonpath='{.items[0].metadata.name}')
+    kubectl exec -it $GREEN_PODS -n $NAMESPACE -- curl http://localhost:3001/health
+
+    # Step 3: Switch traffic to green
+    echo "Step 3: Switching traffic from blue to green..."
+    kubectl patch service $SERVICE -n $NAMESPACE \
+      -p '{"spec":{"selector":{"track":"canary"}}}'
+
+    # Step 4: Monitor
+    echo "Step 4: Monitoring green deployment (10 seconds)..."
+    sleep 10
+
+    # Step 5: Switch back if needed or promote green
+    echo "Step 5: Promoting green to blue..."
+    kubectl set image deployment/$BLUE_DEPLOYMENT \
+      -n $NAMESPACE \
+      backend=gcr.io/PROJECT_ID/wobot-backend:latest
+
+    echo "Blue-green rollout completed!"

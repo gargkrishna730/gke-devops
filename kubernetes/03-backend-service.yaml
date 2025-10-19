@@ -1,0 +1,66 @@
+# Backend Service - Routes to both stable and canary
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  namespace: wobot
+  labels:
+    app: backend
+  annotations:
+    cloud.google.com/neg: '{"ingress": true}'
+    cloud.google.com/backend-config: '{"ports": {"3001":"backend-backendconfig"}}'
+spec:
+  type: ClusterIP
+  selector:
+    app: backend
+  ports:
+  - port: 3001
+    targetPort: 3001
+    protocol: TCP
+    name: http
+  sessionAffinity: None
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+
+---
+# Stable Backend Service (Blue deployment)
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-stable-service
+  namespace: wobot
+  labels:
+    app: backend
+    version: stable
+spec:
+  type: ClusterIP
+  selector:
+    app: backend
+    track: stable
+  ports:
+  - port: 3001
+    targetPort: 3001
+    protocol: TCP
+    name: http
+
+---
+# Canary Backend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-canary-service
+  namespace: wobot
+  labels:
+    app: backend
+    version: canary
+spec:
+  type: ClusterIP
+  selector:
+    app: backend
+    track: canary
+  ports:
+  - port: 3001
+    targetPort: 3001
+    protocol: TCP
+    name: http

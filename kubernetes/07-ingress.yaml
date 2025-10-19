@@ -1,0 +1,82 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wobot-ingress
+  namespace: wobot
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "wobot-ip"
+    networking.gke.io/managed-certificates: "wobot-cert"
+    kubernetes.io/ingress.allow-http: "false"
+spec:
+  rules:
+  - host: "wobot.example.com"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-service
+            port:
+              number: 3000
+  - host: "api.wobot.example.com"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: backend-service
+            port:
+              number: 3001
+
+---
+# Managed Certificate for TLS
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: wobot-cert
+  namespace: wobot
+spec:
+  domains:
+  - wobot.example.com
+  - api.wobot.example.com
+
+---
+# Backend BackendConfig - Session affinity and connection draining
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: backend-backendconfig
+  namespace: wobot
+  annotations:
+    cloud.google.com/backend-config: '{"ports": {"3001":"backend-backendconfig"}}'
+spec:
+  timeoutSec: 30
+  connectionDraining:
+    drainingTimeoutSec: 60
+  sessionAffinity:
+    affinityType: "CLIENT_IP"
+    affinityCookieTtlSec: 10800
+  logging:
+    enable: true
+    sampleRate: 1.0
+
+---
+# Frontend BackendConfig - Connection draining and logging
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: frontend-backendconfig
+  namespace: wobot
+  annotations:
+    cloud.google.com/backend-config: '{"ports": {"3000":"frontend-backendconfig"}}'
+spec:
+  timeoutSec: 30
+  connectionDraining:
+    drainingTimeoutSec: 60
+  logging:
+    enable: true
+    sampleRate: 1.0
+

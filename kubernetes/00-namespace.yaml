@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: wobot
+  labels:
+    name: wobot
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: wobot-sa
+  namespace: wobot

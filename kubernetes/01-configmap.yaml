@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: wobot
+data:
+  NODE_ENV: "production"
+  PORT: "3001"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-config
+  namespace: wobot
+data:
+  REACT_APP_BACKEND_URL: "http://backend-service.wobot.svc.cluster.local:3001"

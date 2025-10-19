@@ -1,0 +1,63 @@
+# Frontend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  namespace: wobot
+  labels:
+    app: frontend
+  annotations:
+    cloud.google.com/neg: '{"ingress": true}'
+    cloud.google.com/backend-config: '{"ports": {"3000":"frontend-backendconfig"}}'
+spec:
+  type: ClusterIP
+  selector:
+    app: frontend
+  ports:
+  - port: 3000
+    targetPort: 3000
+    protocol: TCP
+    name: http
+  sessionAffinity: None
+
+---
+# Stable Frontend Service (Blue deployment)
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-stable-service
+  namespace: wobot
+  labels:
+    app: frontend
+    version: stable
+spec:
+  type: ClusterIP
+  selector:
+    app: frontend
+    track: stable
+  ports:
+  - port: 3000
+    targetPort: 3000
+    protocol: TCP
+    name: http
+
+---
+# Canary Frontend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-canary-service
+  namespace: wobot
+  labels:
+    app: frontend
+    version: canary
+spec:
+  type: ClusterIP
+  selector:
+    app: frontend
+    track: canary
+  ports:
+  - port: 3000
+    targetPort: 3000
+    protocol: TCP
+    name: http

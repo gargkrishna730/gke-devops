@@ -1,0 +1,204 @@
+# Frontend Deployment - Stable Version (Blue)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-stable
+  namespace: wobot
+  labels:
+    app: frontend
+    version: stable
+    track: stable
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: frontend
+      track: stable
+  template:
+    metadata:
+      labels:
+        app: frontend
+        version: stable
+        track: stable
+    spec:
+      serviceAccountName: wobot-sa
+      imagePullSecrets:
+        - name: gcr-json-key
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: frontend
+        image: us-central1-docker.pkg.dev/elegant-atom-475415-c4/frontend/wobot-frontend:72040b2a8723c49fc8259dc80db40bc3b8a996f6
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+          name: http
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: frontend-config
+        resources:
+          requests:
+            cpu: 1m
+            memory: 2Mi
+          limits:
+            cpu: 2m
+            memory: 20Mi
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - name: cache
+          mountPath: /var/cache/nginx
+        - name: run
+          mountPath: /var/run
+        - name: log
+          mountPath: /var/log/nginx
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: cache
+        emptyDir: {}
+      - name: run
+        emptyDir: {}
+      - name: log
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - frontend
+              topologyKey: kubernetes.io/hostname
+
+---
+# Frontend Deployment - Canary Version
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-canary
+  namespace: wobot
+  labels:
+    app: frontend
+    version: canary
+    track: canary
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: frontend
+      track: canary
+  template:
+    metadata:
+      labels:
+        app: frontend
+        version: canary
+        track: canary
+    spec:
+      serviceAccountName: wobot-sa
+      imagePullSecrets:
+        - name: gcr-json-key
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: frontend
+        image: us-central1-docker.pkg.dev/elegant-atom-475415-c4/frontend/wobot-frontend:72040b2a8723c49fc8259dc80db40bc3b8a996f6
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+          name: http
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: frontend-config
+        resources:
+          requests:
+            cpu: 1m
+            memory: 2Mi
+          limits:
+            cpu: 2m
+            memory: 20Mi
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - name: cache
+          mountPath: /var/cache/nginx
+        - name: run
+          mountPath: /var/run
+        - name: log
+          mountPath: /var/log/nginx
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: cache
+        emptyDir: {}
+      - name: run
+        emptyDir: {}
+      - name: log
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
