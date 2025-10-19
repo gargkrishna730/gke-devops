@@ -14,10 +14,12 @@ RUN npm install --only=production && npm cache clean --force
 # --- Multi-stage build: Security scanning stage ---
 FROM builder AS security-scan
 
-# Install security scanning tools
+# Set shell with pipefail for error handling
+SHELL ["/bin/ash", "-o", "pipefail", "-c"]
+
 RUN apk add --no-cache \
-    curl \
-    git \
+    curl=8.5.0-r0 \
+    git=2.42.1-r0 \
     && curl -sSfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
 
 COPY . .

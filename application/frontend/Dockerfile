@@ -16,8 +16,11 @@ RUN npm run build
 # --- Production stage with nginx ---
 FROM nginx:1.24-alpine
 
-# Install curl for health checks
-RUN apk add --no-cache curl
+# Set shell with pipefail for error handling
+SHELL ["/bin/ash", "-o", "pipefail", "-c"]
+
+# Install curl for health checks with pinned version
+RUN apk add --no-cache curl=8.5.0-r0
 
 # Create non-root user
 RUN addgroup -g 1001 -S nginx_user && \
