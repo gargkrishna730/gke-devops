@@ -34,7 +34,7 @@ COPY nginx.conf /etc/nginx/nginx.conf
 COPY default.conf /etc/nginx/conf.d/default.conf
 
 # Create entrypoint script for environment variable substitution
-RUN cat > /app-entrypoint.sh << 'EOF'
+RUN cat > /app-entrypoint.sh << 'EOF' && chmod +x /app-entrypoint.sh
 #!/bin/sh
 set -e
 
@@ -48,8 +48,6 @@ EOJS
 
 exec "$@"
 EOF
-
-RUN chmod +x /app-entrypoint.sh
 
 # Create necessary directories with proper permissions
 RUN mkdir -p /var/log/nginx && \
