@@ -11,7 +11,7 @@ on:
 env:
   REGISTRY: us-central1-docker.pkg.dev
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  REPOSITORY: wobot-repo
+  REPOSITORY: frontend
   IMAGE_NAME: wobot-frontend
   IMAGE_TAG: ${{ github.sha }}
 
@@ -62,7 +62,10 @@ jobs:
           dockerfile: application/frontend/Dockerfile
           failure-threshold: warning
 
-      - name: 🛡️ Scan Docker Image with Trivy
+      - name: � Create scan-results directory
+        run: mkdir -p scan-results
+
+      - name: �🛡️ Scan Docker Image with Trivy
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ steps.image.outputs.tag }}

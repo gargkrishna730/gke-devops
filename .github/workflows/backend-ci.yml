@@ -62,7 +62,10 @@ jobs:
           dockerfile: application/backend/Dockerfile
           failure-threshold: warning
 
-      - name: 🛡️ Scan Docker Image with Trivy
+      - name: � Create scan-results directory
+        run: mkdir -p scan-results
+
+      - name: �🛡️ Scan Docker Image with Trivy
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ steps.image.outputs.tag }}
@@ -98,5 +101,3 @@ jobs:
           name: security-scan-results-backend-${{ github.sha }}
           path: scan-results/
           retention-days: 30
-
-
