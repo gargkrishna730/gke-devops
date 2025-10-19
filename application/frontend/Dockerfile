@@ -9,10 +9,11 @@ RUN npm run build
 # Production stage
 FROM nginx:1.24-alpine
 SHELL ["/bin/ash", "-o", "pipefail", "-c"]
-RUN apk add --no-cache curl gettext
+RUN apk add --no-cache curl=8.5.0-r0 gettext=0.21.1-r1
 
 # Create non-root user
-RUN addgroup -g 1001 -S nginx_user && adduser -S nginx_user -u 1001
+RUN addgroup -g 1001 -S nginx_user && \
+    adduser -S nginx_user -u 1001
 
 # Copy built app
 COPY --from=builder /app/build /usr/share/nginx/html
@@ -21,20 +22,14 @@ COPY --from=builder /app/build /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY default.conf /etc/nginx/conf.d/default.conf
 
-# Create entrypoint script that generates config.js at runtime
-RUN cat > /app-entrypoint.sh << 'EOF'
-#!/bin/sh
-cat > /usr/share/nginx/html/config.js << CONFEOF
-window.ENV = {REACT_APP_BACKEND_URL: '${REACT_APP_BACKEND_URL:-http://localhost:3001}',REACT_APP_API_URL: '${REACT_APP_API_URL:-http://localhost:3001}'};
-CONFEOF
-exec nginx -g "daemon off;"
-EOF
-RUN chmod +x /app-entrypoint.sh
-
-# Create directories and set permissions
-RUN mkdir -p /var/log/nginx /var/cache/nginx /var/run/nginx /etc/nginx/conf.d && \
-    chown -R nginx_user:nginx_user /var/log/nginx /var/cache/nginx /var/run/nginx /etc/nginx/conf.d /usr/share/nginx/html && \
+# Create directories with proper permissions
+RUN mkdir -p /var/log/nginx /var/cache/nginx /var/run/nginx && \
+    chown -R nginx_user:nginx_user /var/log/nginx /var/cache/nginx /var/run/nginx /usr/share/nginx/html && \
     chmod -R 755 /var/log/nginx /var/cache/nginx /var/run/nginx
+
+# Copy entrypoint script
+COPY entrypoint.sh /app-entrypoint.sh
+RUN chmod +x /app-entrypoint.sh
 
 # Switch to non-root user
 USER nginx_user
