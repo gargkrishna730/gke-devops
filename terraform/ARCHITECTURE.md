@@ -355,11 +355,3 @@ google_project_service (Enable APIs)
 | Terraform state lock | Previous apply crashed | Manually force-unlock in GCS |
 
 ---
-
-## Related Documentation
-
-- [VPC Module Details](./terraform/modules/vpc/README.md)
-- [GKE Module Details](./terraform/modules/gke/README.md)
-- [Artifact Registry Module Details](./terraform/modules/artifact-registry/README.md)
-- [Terraform Documentation](https://registry.terraform.io/providers/hashicorp/google/latest/docs)
-- [Google Kubernetes Engine Docs](https://cloud.google.com/kubernetes-engine/docs)
