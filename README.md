@@ -46,7 +46,7 @@ Internet
 [Google Cloud Load Balancer + TLS]
     ↓
 [Kubernetes Ingress]
-    ├─→ Frontend Service (3000)
+    ├─→ Frontend Service (80)
     │   ├─→ Frontend Stable Pods (Nginx + React)
     │   └─→ Frontend Canary Pod (Nginx + React)
     │
@@ -65,6 +65,12 @@ docker-compose up --build
 Access:
 - Frontend: http://localhost:3000
 - Backend Health: http://localhost:3001/health
+
+## 🌐 Deployed Application
+
+**Frontend**: http://136.113.219.191:3000/
+
+The application is live and running on GKE!
 
 ## 📦 Backend API
 
@@ -165,19 +171,24 @@ Access:
 
 ```
 wobot-backend-app/
-├── backend/                    # Node.js Express Backend
-│   ├── src/
-│   │   └── index.js           # Main server
-│   ├── Dockerfile             # Multi-stage build
-│   ├── .dockerignore
-│   └── package.json
-├── frontend/                   # React Frontend
-│   ├── public/
-│   ├── src/
-│   ├── Dockerfile             # Multi-stage nginx build
-│   ├── nginx.conf
-│   ├── default.conf
-│   └── package.json
+├── .github/                    # GitHub configuration
+│   └── workflows/              # CI/CD Workflows
+│       ├── backend-ci.yml      # Backend build & push
+│       └── frontend-ci.yml     # Frontend build & push
+├── application/                # Application source code
+│   ├── backend/                # Node.js Express Backend
+│   │   ├── src/
+│   │   │   └── index.js        # Main server
+│   │   ├── Dockerfile          # Multi-stage build
+│   │   ├── .dockerignore
+│   │   └── package.json
+│   └── frontend/               # React Frontend
+│       ├── public/
+│       ├── src/
+│       ├── Dockerfile          # Multi-stage nginx build
+│       ├── nginx.conf
+│       ├── default.conf
+│       └── package.json
 ├── kubernetes/                 # K8s manifests
 │   ├── 00-namespace.yaml
 │   ├── 01-configmap.yaml
@@ -190,10 +201,7 @@ wobot-backend-app/
 │   ├── 08-policies.yaml
 │   └── 09-rollout-strategies.yaml
 ├── terraform/                  # IaC for GCP/GKE
-├── docker-compose.yml         # Local development
-├── build-and-push.sh          # Build script
-├── deploy-to-gke.sh           # Deployment script
-├── DEPLOYMENT_GUIDE.md        # Detailed guide
+├── BUILD_AND_DEPLOY.md        # Detailed guide
 └── README.md                  # This file
 ```
 
