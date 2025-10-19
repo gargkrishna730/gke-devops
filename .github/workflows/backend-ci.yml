@@ -47,13 +47,14 @@ jobs:
         run: |
           echo "tag=${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}" >> $GITHUB_OUTPUT
 
-      - name: 🏗️ Build application and create Docker container image
-        run: |
-          docker buildx build \
-            --platform linux/amd64,linux/arm64 \
-            -t ${{ steps.image.outputs.tag }} \
-            -f application/backend/Dockerfile \
-            ./application/backend
+      - name: 🏗️ Build and push multi-arch image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./application/backend
+          file: ./application/backend/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.image.outputs.tag }}
 
       - name: 🔍 Lint Dockerfile with Hadolint
         uses: hadolint/hadolint-action@v3.1.0
@@ -65,8 +66,18 @@ jobs:
         run: |
           mkdir -p scan-results
           which trivy || (curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin)
-          trivy image --format json -o scan-results/scan-report.json ${{ steps.image.outputs.tag }}
-          trivy image --format template --template "@/usr/local/share/trivy/templates/html.tpl" -o scan-results/scan-report.html ${{ steps.image.outputs.tag }}
+          # wait for remote registry propagation (brief backoff)
+          for i in {1..6}; do
+            if curl -s -f -I "https://${{ env.REGISTRY }}/v2/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/manifests/${{ env.IMAGE_TAG }}" >/dev/null 2>&1; then
+              echo "Image manifest available"
+              break
+            fi
+            echo "Waiting for image manifest to appear... ($i)"
+            sleep 5
+          done
+          # Use Trivy remote scan to avoid local docker daemon requirements
+          trivy image --remote --format json -o scan-results/scan-report.json ${{ steps.image.outputs.tag }}
+          trivy image --remote --format template --template "@/usr/local/share/trivy/templates/html.tpl" -o scan-results/scan-report.html ${{ steps.image.outputs.tag }}
           # Generate clean summary table for GitHub
           echo "## 🛡️ Security Scan Results" >> $GITHUB_STEP_SUMMARY
           echo "| Severity | Count |" >> $GITHUB_STEP_SUMMARY
@@ -95,7 +106,4 @@ jobs:
           path: scan-results/
           retention-days: 30
 
-      - name: 📤 Push Docker Image to GCP Artifact Registry
-        run: |
-          docker push ${{ steps.image.outputs.tag }}
 
