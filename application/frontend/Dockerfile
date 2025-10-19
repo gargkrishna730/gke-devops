@@ -19,8 +19,8 @@ FROM nginx:1.24-alpine
 # Set shell with pipefail for error handling
 SHELL ["/bin/ash", "-o", "pipefail", "-c"]
 
-# Install curl for health checks with pinned version
-RUN apk add --no-cache curl=8.5.0-r0
+# Install curl for health checks and envsubst for runtime variable substitution
+RUN apk add --no-cache curl=8.5.0-r0 gettext=0.22.5-r0
 
 # Create non-root user
 RUN addgroup -g 1001 -S nginx_user && \
@@ -32,6 +32,24 @@ COPY --from=builder /app/build /usr/share/nginx/html
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY default.conf /etc/nginx/conf.d/default.conf
+
+# Create entrypoint script for environment variable substitution
+RUN cat > /app-entrypoint.sh << 'EOF'
+#!/bin/sh
+set -e
+
+# Create a JavaScript file with environment variables
+cat > /usr/share/nginx/html/config.js << EOJS
+window.ENV = {
+  REACT_APP_BACKEND_URL: '${REACT_APP_BACKEND_URL:-http://localhost:3001}',
+  REACT_APP_API_URL: '${REACT_APP_API_URL:-http://localhost:3001}'
+};
+EOJS
+
+exec "$@"
+EOF
+
+chmod +x /app-entrypoint.sh
 
 # Create necessary directories with proper permissions
 RUN mkdir -p /var/log/nginx && \
@@ -57,4 +75,6 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3000/ || exit 1
 
+ENTRYPOINT ["/app-entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]
+

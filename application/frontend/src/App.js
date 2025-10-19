@@ -9,7 +9,10 @@ function App() {
   const [error, setError] = useState(null);
   const [message, setMessage] = useState('');
 
-  const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+  // Get backend URL from runtime config or environment
+  const backendUrl = (window.ENV && window.ENV.REACT_APP_BACKEND_URL) || 
+                     process.env.REACT_APP_BACKEND_URL || 
+                     'http://localhost:3001';
 
   useEffect(() => {
     fetchStatus();
