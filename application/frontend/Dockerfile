@@ -22,7 +22,18 @@ COPY nginx.conf /etc/nginx/nginx.conf
 COPY default.conf /etc/nginx/conf.d/default.conf
 
 # Create entrypoint script
-RUN printf '#!/bin/sh\nset -e\ncat > /usr/share/nginx/html/config.js << EOJS\nwindow.ENV = {\n  REACT_APP_BACKEND_URL: '"'"'${REACT_APP_BACKEND_URL:-http://localhost:3001}'"'"',\n  REACT_APP_API_URL: '"'"'${REACT_APP_API_URL:-http://localhost:3001}'"'"'\n};\nEOJS\nexec "$@"\n' > /app-entrypoint.sh && chmod +x /app-entrypoint.sh
+RUN mkdir -p /tmp && cat > /tmp/entrypoint.sh << 'SCRIPT_EOF'
+#!/bin/sh
+set -e
+cat > /usr/share/nginx/html/config.js << 'JS_EOF'
+window.ENV = {
+  REACT_APP_BACKEND_URL: '${REACT_APP_BACKEND_URL:-http://localhost:3001}',
+  REACT_APP_API_URL: '${REACT_APP_API_URL:-http://localhost:3001}'
+};
+JS_EOF
+exec "$@"
+SCRIPT_EOF
+RUN chmod +x /tmp/entrypoint.sh && cp /tmp/entrypoint.sh /app-entrypoint.sh && chmod +x /app-entrypoint.sh
 
 # Create directories and set permissions
 RUN mkdir -p /var/log/nginx /var/cache/nginx /var/run/nginx /etc/nginx/conf.d && \
