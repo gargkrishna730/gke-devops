@@ -33,13 +33,19 @@ COPY --from=builder /app/build /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY default.conf /etc/nginx/conf.d/default.conf
 
-# Create log directory and set permissions
+# Create necessary directories with proper permissions
 RUN mkdir -p /var/log/nginx && \
+    mkdir -p /var/cache/nginx && \
     mkdir -p /var/run/nginx && \
+    mkdir -p /etc/nginx/conf.d && \
     chown -R nginx_user:nginx_user /var/log/nginx && \
     chown -R nginx_user:nginx_user /var/cache/nginx && \
     chown -R nginx_user:nginx_user /var/run/nginx && \
-    chown -R nginx_user:nginx_user /etc/nginx/conf.d
+    chown -R nginx_user:nginx_user /etc/nginx/conf.d && \
+    chown -R nginx_user:nginx_user /usr/share/nginx/html && \
+    chmod -R 755 /var/log/nginx && \
+    chmod -R 755 /var/cache/nginx && \
+    chmod -R 755 /var/run/nginx
 
 # Switch to non-root user
 USER nginx_user
