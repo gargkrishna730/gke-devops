@@ -1,0 +1,101 @@
+name: Build, Scan & Push Backend to Artifact Registry
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'application/backend/**'
+      - '.github/workflows/backend-ci.yml'
+
+env:
+  REGISTRY: us-central1-docker.pkg.dev
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REPOSITORY: backend
+  IMAGE_NAME: wobot-backend
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  build-scan-push:
+    name: 🎨 Build, Scan & Push Backend
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔨 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔐 Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: ☁️ Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: 🐳 Configure Docker to use gcloud
+        run: |
+          gcloud auth configure-docker ${{ env.REGISTRY }}
+
+      - name: 🏷️ Generate image tag
+        id: image
+        run: |
+          echo "tag=${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}" >> $GITHUB_OUTPUT
+
+      - name: 🏗️ Build application and create Docker container image
+        run: |
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            -t ${{ steps.image.outputs.tag }} \
+            -f application/backend/Dockerfile \
+            ./application/backend
+
+      - name: 🔍 Lint Dockerfile with Hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: application/backend/Dockerfile
+          failure-threshold: warning
+
+      - name: �️ Scan Docker Image with Trivy
+        run: |
+          mkdir -p scan-results
+          which trivy || (curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin)
+          trivy image --format json -o scan-results/scan-report.json ${{ steps.image.outputs.tag }}
+          trivy image --format template --template "@/usr/local/share/trivy/templates/html.tpl" -o scan-results/scan-report.html ${{ steps.image.outputs.tag }}
+          # Generate clean summary table for GitHub
+          echo "## 🛡️ Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Severity | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
+          
+          # Parse JSON and count vulnerabilities by severity
+          jq -r '
+            .Results | 
+            map(.Vulnerabilities // []) | 
+            flatten | 
+            group_by(.Severity) | 
+            map({severity: .[0].Severity, count: length}) | 
+            .[] |
+            "| \(.severity) | \(.count) |"
+          ' scan-results/scan-report.json >> $GITHUB_STEP_SUMMARY
+          
+          # Add verification note
+          echo -e "\n### 📋 Full Report" >> $GITHUB_STEP_SUMMARY
+          echo "Detailed HTML and JSON reports have been generated and uploaded as artifacts." >> $GITHUB_STEP_SUMMARY
+          echo "You can download and view them from the 'Artifacts' section of this workflow run." >> $GITHUB_STEP_SUMMARY
+
+      - name: 📦 Upload Scan Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-scan-results-backend-${{ github.sha }}
+          path: scan-results/
+          retention-days: 30
+
+      - name: 📤 Push Docker Image to GCP Artifact Registry
+        run: |
+          docker push ${{ steps.image.outputs.tag }}
+
